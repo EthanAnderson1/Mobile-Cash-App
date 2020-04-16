@@ -1,9 +1,11 @@
 package com.example.cashappv2;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -30,12 +32,28 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firestore.v1.Document;
 
 
+import org.w3c.dom.Text;
+
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.List;
 
 public class AcceptPayment extends AppCompatActivity {
-
+    String encryptedAmount;
+    String encryptedCardNumber;
+    String encryptedCvc;
+    String fromstr;
+    String amountStr;
+    String cardNumber;
+    String cvc;
+    PrivateKey privateKey;
     private DocumentSnapshot currentUserDetails;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -116,6 +134,7 @@ public class AcceptPayment extends AppCompatActivity {
         });
 
         db.collection("Pending Payments").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if(task.isSuccessful()) {
@@ -125,7 +144,25 @@ public class AcceptPayment extends AppCompatActivity {
                     View child;
                     int i = 0;
                     for (final DocumentSnapshot doc : docs) {
-                        if (currentUserDetails.getString("Username").equals(doc.getString("To"))) {
+                        String payee = doc.get("To").toString();
+                        if (currentUserDetails.get("Username").toString().equals(payee)) {
+                            try {
+                                String textPrivateKey = currentUserDetails.get("Private Key").toString();
+                                Base64.Decoder decoder = Base64.getDecoder();
+                                byte[] bytePrivateKey = decoder.decode(textPrivateKey);
+                                PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytePrivateKey);
+                                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                                privateKey = keyFactory.generatePrivate(spec);
+                            }catch(Exception e){
+                                e.printStackTrace();
+                            }
+                            fromstr = doc.get("From").toString();
+                            encryptedAmount = doc.get("Amount").toString();
+                            encryptedCardNumber = doc.get("Card Number").toString();
+                            encryptedCvc = doc.get("Cvc").toString();
+                            amountStr = EncryptDecrypt.decrypt(encryptedAmount.getBytes(),privateKey);
+                            cardNumber = EncryptDecrypt.decrypt(encryptedCardNumber.getBytes(),privateKey);
+                            cvc = EncryptDecrypt.decrypt(encryptedCvc.getBytes(),privateKey);
                             Log.d("success", "payment found");
                             child = linearLayout.inflate(getApplicationContext(),R.layout.pending_payment,null);
                             child.setId(10*i+6);
@@ -136,8 +173,9 @@ public class AcceptPayment extends AppCompatActivity {
                             amount.setId(10*i+2);
                             TextView paymentId = findViewById(R.id.paymentId);
                             paymentId.setId(10*i+3);
-                            from.setText("From: " + doc.getString("From"));
-                            amount.setText("Amount: " + doc.getString("Amount"));
+
+                            from.setText(fromstr);
+                            amount.setText("Amount: " + amountStr);
                             paymentId.setText(doc.getId());
                             Button submit = findViewById(R.id.confirmbtn);
                             submit.setId(10*i+4);
@@ -149,17 +187,36 @@ public class AcceptPayment extends AppCompatActivity {
                                     final TextView paymentId = findViewById((v.getId())-1);
                                     Log.d("Payment ID", paymentId.getText().toString());
                                     db.collection("Pending Payments").document(paymentId.getText().toString()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                        @RequiresApi(api = Build.VERSION_CODES.O)
                                         @Override
                                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                             if(task.isSuccessful()){
                                                 DocumentSnapshot doc = task.getResult();
                                                 Log.d("check if exists",String.valueOf(doc.exists()));
+                                                final String digitalSignature = doc.getString("Signature");
                                                 final String to = doc.getString("To");
                                                 final String from = doc.getString("From");
-                                                final Double amount = Double.valueOf(doc.get("Amount").toString());
-                                                Log.d("Check if working",doc.getString("To"));
-                                                Log.d("Check if working",doc.getString("From"));
-                                                Log.d("Check if working",Double.valueOf(doc.get("Amount").toString()).toString());
+                                                final Double amountDbl = Double.valueOf(amountStr);
+                                                final String textPublicKey = doc.getString("Public Key");
+
+                                                try {
+
+                                                    Signature signature = Signature.getInstance("SHA256withRSA");
+                                                    Base64.Decoder decoder = Base64.getDecoder();
+                                                    byte[] bytePublicKey = decoder.decode(textPublicKey);
+                                                    X509EncodedKeySpec spec = new X509EncodedKeySpec(bytePublicKey);
+                                                    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                                                    PublicKey publicKey = keyFactory.generatePublic(spec);
+                                                    signature.initVerify(publicKey);
+
+                                                    byte[] byteDigitalSignature = decoder.decode(digitalSignature);
+                                                    signature.update(from.getBytes());
+                                                    System.out.println("Signature " + (signature.verify(byteDigitalSignature) ? "OK" : "Not OK"));
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
+                                                }
+
+
                                                 db.collection("Users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                                     @Override
                                                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
@@ -168,30 +225,35 @@ public class AcceptPayment extends AppCompatActivity {
                                                             Log.d("Check if working","1");
                                                             for(DocumentSnapshot doc : docs){
                                                                 Log.d("Check if working","2");
-                                                                if(doc.get("Username").toString().equals(from)){
-                                                                    Log.d("Check if working","3");
-                                                                    doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds")-amount).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                                        @Override
-                                                                        public void onComplete(@NonNull Task<Void> task) {
-                                                                            if(task.isSuccessful()){
-                                                                                Log.d("Update Success", "Balance Updated");
-                                                                            }else{
-                                                                                Log.d("Update Failed", "Error");
+                                                                if (from.equals(to)){
+                                                                    Toast.makeText(AcceptPayment.this, "Payment Accepted", Toast.LENGTH_SHORT).show();
+                                                                }else {
+                                                                    if (doc.get("Username").toString().equals(from)) {
+                                                                        Log.d("Check if working", "3");
+                                                                        doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds") - amountDbl).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                            @Override
+                                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                                if (task.isSuccessful()) {
+                                                                                    Log.d("Update Success", "Balance Updated");
+                                                                                } else {
+                                                                                    Log.d("Update Failed", "Error");
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    });
-                                                                }
-                                                                if(doc.getString("Username").equals(to)){
-                                                                    doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds")+amount).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                                        @Override
-                                                                        public void onComplete(@NonNull Task<Void> task) {
-                                                                            if(task.isSuccessful()){
-                                                                                Log.d("Update Success", "Balance Updated");
-                                                                            }else{
-                                                                                Log.d("Update Failed", "Error");
+                                                                        });
+                                                                    }
+                                                                    if (doc.getString("Username").equals(to)) {
+                                                                        Log.d("Check if working", "4");
+                                                                        doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds") + amountDbl).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                            @Override
+                                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                                if (task.isSuccessful()) {
+                                                                                    Log.d("Update Success", "Balance Updated");
+                                                                                } else {
+                                                                                    Log.d("Update Failed", "Error");
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    });
+                                                                        });
+                                                                    }
                                                                 }
                                                             }
                                                         }

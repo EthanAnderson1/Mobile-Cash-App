@@ -21,6 +21,7 @@ import static com.google.firebase.auth.FirebaseAuth.getInstance;
 
 public class AccountSettings extends AppCompatActivity {
     FirebaseFirestore db = FirebaseFirestore.getInstance();
+    FirebaseUser currentUser = getInstance().getCurrentUser();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,17 +70,6 @@ public class AccountSettings extends AppCompatActivity {
         deleteAccount.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FirebaseUser currentUser = getInstance().getCurrentUser();
-                db.document("Users/"+currentUser.getEmail()).delete().addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if(task.isSuccessful()){
-                            Toast.makeText(AccountSettings.this, "User Data Deleted.", LENGTH_SHORT).show();
-                        }else{
-                            Toast.makeText(AccountSettings.this, "Failed to Delete Account.", LENGTH_SHORT).show();
-                        }
-                    }
-                });
                 currentUser.delete().addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
@@ -91,6 +81,17 @@ public class AccountSettings extends AppCompatActivity {
                         }
                     }
                 });
+                db.document("Users/"+currentUser.getEmail()).delete().addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if(task.isSuccessful()){
+                            Toast.makeText(AccountSettings.this, "User Data Deleted.", LENGTH_SHORT).show();
+                        }else{
+                            Toast.makeText(AccountSettings.this, "Failed to Delete Account.", LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
             }
         });
         logout.setOnClickListener(new View.OnClickListener() {
