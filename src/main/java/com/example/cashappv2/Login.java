@@ -31,9 +31,11 @@ public class Login extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser mFirebaseUser = mAuth.getCurrentUser();
+
         if (mFirebaseUser != null) {
             Toast.makeText(Login.this, "You are logged in", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(Login.this, Home.class));
+            finish();
         } else {
             Toast.makeText(Login.this, "Please Login", Toast.LENGTH_SHORT).show();
         }
@@ -48,6 +50,7 @@ public class Login extends AppCompatActivity {
                 switch(tab.getPosition()){
                     case 1:
                         startActivity(new Intent(Login.this, SignUp.class));
+                        finish();
                         break;
                 }
             }
@@ -82,6 +85,7 @@ public class Login extends AppCompatActivity {
                                 Log.d("successful login","successful login");
                                 Toast.makeText(Login.this, "Login Successful", Toast.LENGTH_SHORT).show();
                                 startActivity(new Intent(Login.this, Home.class));
+                                finish();
                             } else {
                                 Log.d("Login Failed", "Login Failed");
                                 Toast.makeText(Login.this, "Login Failed", Toast.LENGTH_SHORT).show();

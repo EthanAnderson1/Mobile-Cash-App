@@ -9,7 +9,7 @@ import java.util.Base64;
 
 import javax.crypto.Cipher;
 
-public class EncryptDecrypt {
+public class PaymentHelper {
 
     public static byte[] encrypt(String data, PublicKey key) {
         byte[] dataToEncrypt = data.getBytes();

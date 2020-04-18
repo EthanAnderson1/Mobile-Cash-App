@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/appbar"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:tag="sdffsd">
+    android:layout_height="wrap_content">
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabs"
@@ -25,12 +24,6 @@
                 android:clickable="true"
                 android:text="@string/acceptPayment" />
 
-            <com.google.android.material.tabs.TabItem
-                android:id="@+id/activityLogsTab"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:clickable="true"
-                android:text="@string/pastActivity" />
 
             <com.google.android.material.tabs.TabItem
                 android:id="@+id/settingsTab"

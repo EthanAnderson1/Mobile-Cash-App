@@ -11,8 +11,6 @@
         android:theme="@style/AppTheme">
         <activity android:name=".AcceptPayment"/>
 
-        <activity android:name=".Logs" />
-
         <activity android:name=".MakePayment"
             android:parentActivityName=".Home"/>
 

@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:layout_margin="20dp"
-    >
+    android:background="@color/colorBackground">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
 
         <TextView
             android:id="@+id/titlelbl"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="35sp"
+            android:layout_margin="46dp"
             android:text="@string/makePayment" />
 
         <LinearLayout
@@ -19,7 +26,8 @@
 
                 <TextView
                     android:id="@+id/textView37"
-                    android:layout_marginRight="6dp"
+                    android:textSize="20sp"
+                    android:layout_margin="10dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/balance"
@@ -29,6 +37,8 @@
                     android:id="@+id/currentBalancelbl"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:layout_margin="10dp"
                     android:text="0.00" />
         </LinearLayout>
 
@@ -37,6 +47,8 @@
             android:id="@+id/inputCardDetailslbl"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:layout_marginTop="20dp"
             android:text="@string/inputCardDetails" />
 
         <HorizontalScrollView
@@ -49,24 +61,31 @@
             android:id="@+id/enterPaymentAmountlbl"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:layout_marginTop="20dp"
             android:text="@string/enterPaymentAmount" />
 
         <EditText
             android:id="@+id/paymentAmounttxt"
-            android:layout_width="130dp"
-            android:layout_height="39dp"
-            android:inputType="number" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:hint="0.00"
+            android:inputType="numberDecimal" />
 
         <TextView
             android:id="@+id/textView32"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:layout_marginTop="20dp"
             android:text="@string/enterPayee"/>
 
         <EditText
             android:id="@+id/payeeUsernametxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="20sp"
             android:inputType="textPersonName"
             android:hint="@string/payee" />
 
@@ -74,6 +93,6 @@
         <include layout="@layout/confirm_payment"/>
 
 
+        </LinearLayout>
 
-
-</LinearLayout>
+</ScrollView>

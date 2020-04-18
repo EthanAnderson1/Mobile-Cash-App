@@ -47,7 +47,7 @@
     <string name="balance">Balance </string>
     <string name="accountCreated">Account Created</string>
     <string name="pastActivity">Past Activity</string>
-    <string name="acceptPayment">Accept Payment</string>
+    <string name="acceptPayment">Accept Payments</string>
     <string name="home">Home</string>
     <string name="enterSortCode">Enter Sort Code</string>
     <string name="enterAccountNumber">Enter Account Number</string>
@@ -59,4 +59,5 @@
     <string name="changeBankDetails">Change Bank Details</string>
     <string name="accountHoldersName">Account Holders Name</string>
     <string name="reject">Reject</string>
+    <string name="enterPasswordToUpdate">Enter Password To Update Details</string>
 </resources>

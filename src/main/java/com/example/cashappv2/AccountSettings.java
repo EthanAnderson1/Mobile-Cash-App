@@ -13,7 +13,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import static android.widget.Toast.LENGTH_SHORT;
@@ -32,19 +31,18 @@ public class AccountSettings extends AppCompatActivity {
         Button deleteAccount = findViewById(R.id.deleteAccountbtn);
 
         TabLayout tabLayout = findViewById(R.id.tabs);
-        tabLayout.selectTab(tabLayout.getTabAt(3));
+        tabLayout.selectTab(tabLayout.getTabAt(2));
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 switch(tab.getPosition()){
                     case 0:
                         startActivity(new Intent(AccountSettings.this, Home.class));
+                        finish();
                         break;
                     case 1:
                         startActivity(new Intent(AccountSettings.this, AcceptPayment.class));
-                        break;
-                    case 2:
-                        startActivity(new Intent(AccountSettings.this, Logs.class));
+                        finish();
                         break;
                 }
             }
@@ -76,6 +74,7 @@ public class AccountSettings extends AppCompatActivity {
                         if (task.isSuccessful()){
                             startActivity(new Intent(AccountSettings.this, Login.class));
                             Toast.makeText(AccountSettings.this, "Account Deleted.", LENGTH_SHORT).show();
+                            finish();
                         }else{
                             Toast.makeText(AccountSettings.this, "Failed to Delete Account.", LENGTH_SHORT).show();
                         }
@@ -100,6 +99,7 @@ public class AccountSettings extends AppCompatActivity {
                 getInstance().signOut();
                 Toast.makeText(AccountSettings.this, "Signed Out", LENGTH_SHORT).show();
                 startActivity(new Intent(AccountSettings.this, Login.class));
+                finish();
             }
         });
     }

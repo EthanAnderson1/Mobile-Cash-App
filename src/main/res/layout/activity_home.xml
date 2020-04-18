@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/colorBackground">
 
     <include layout="@layout/top_bar"/>
 
@@ -11,71 +12,87 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_margin="20dp">
+        android:layout_margin="20dp"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="cursive"
+            android:text="@string/app_name"
+            android:textAllCaps="true"
+            android:textAlignment="center"
+            android:textSize="50dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                >
+                android:gravity="center_horizontal"
+                android:layout_marginTop="8dp">
                 <TextView
                     android:id="@+id/usernamelbl"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textSize="25dp"
                     android:text="error"
                     />
 
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_margin="20dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/textView37"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="25dp"
+                        android:text="@string/balance"
+                        />
+
+                    <TextView
+                        android:id="@+id/currentBalancelbl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="25dp"
+                        android:text="0.00" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/makePaymentbtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/makePayment"
+                    android:textAllCaps="false"
+                    android:textSize="24sp"
+                    android:layout_margin="20dp"/>
                 <TextView
                     android:id="@+id/textView16"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textSize="25dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/pendingTransactions"
                     />
 
-                <TextView
-                    android:id="@+id/textView17"
+
+                <ScrollView
+                    android:id="@+id/ScrollView2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/completedTransactions"
-                  />
-
-                <HorizontalScrollView
-                    android:id="@+id/horizontalScrollView2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
+                    android:layout_margin="20dp">
                     <LinearLayout
-                        android:id="@+id/cardLayout"
+                        android:id="@+id/pendingPayments"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
                     </LinearLayout>
-                </HorizontalScrollView>
-
-            <Button
-                android:id="@+id/makePaymentbtn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/makePayment" />
-            <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/textView37"
-                    android:layout_marginRight="6dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/balance"
-                    />
-
-                <TextView
-                    android:id="@+id/currentBalancelbl"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0.00" />
-            </LinearLayout>
+                </ScrollView>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

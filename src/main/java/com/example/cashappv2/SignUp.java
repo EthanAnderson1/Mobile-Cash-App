@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,12 +22,9 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import org.bouncycastle.util.encoders.Base64Encoder;
 
-import java.io.*;
 import java.security.*;
-import java.security.spec.RSAPrivateKeySpec;
-import java.security.spec.RSAPublicKeySpec;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Base64;
@@ -39,9 +35,6 @@ import static android.widget.Toast.LENGTH_SHORT;
 public class SignUp extends AppCompatActivity {
     FirebaseAuth mAuth;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    RSAPublicKeySpec rsaPublicKeySpec;
-    RSAPrivateKeySpec rsaPrivateKeySpec;
-    String fileName = "rsa";
     String textPublicKey;
     String textPrivateKey;
     @Override
@@ -60,6 +53,7 @@ public class SignUp extends AppCompatActivity {
                 switch(tab.getPosition()){
                     case 0:
                         startActivity(new Intent(SignUp.this, Login.class));
+                        finish();
                         break;
                 }
             }
@@ -85,7 +79,6 @@ public class SignUp extends AppCompatActivity {
                 final EditText cardHoldersName = findViewById(R.id.cardHoldersNametxt);
                 final EditText accountNumber = findViewById(R.id.accountNumbertxt);
                 final EditText sortCode = findViewById(R.id.sortCodetxt);
-
                 EditText Cpassword = findViewById(R.id.confirmPasswordtxt);
                 EditText password = findViewById(R.id.passwordtxt);
                 if (email.getText().toString().isEmpty()) {
@@ -138,7 +131,6 @@ public class SignUp extends AppCompatActivity {
 
                                 Random rand = new Random();
                                 user.put("Accessible Funds",(rand.nextInt(9500)+500));
-
                                 user.put("Public Key", textPublicKey);
                                 user.put("Private Key", textPrivateKey);
 

@@ -5,11 +5,15 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:layout_marginVertical="20dp"
+    android:gravity="center_horizontal"
     >
 
     <TextView
+        android:id="@+id/addBankAccountlbl"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:layout_margin="30dp"
         android:text="Add Bank Account"/>
 
     <LinearLayout
