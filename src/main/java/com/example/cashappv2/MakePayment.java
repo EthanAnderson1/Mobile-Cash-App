@@ -24,11 +24,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.stripe.android.model.Card;
-import com.stripe.android.view.CardInputWidget;
-
 
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -50,13 +48,9 @@ public class MakePayment extends AppCompatActivity {
     String textDigitalSignature;
     String textPublicKey;
     String encryptedAmount;
-    String encryptedCardNumber;
-    String encryptedCvc;
     String from;
     String to;
     String amountStr;
-    String cardNumber;
-    String cvc;
     Map<String, Object> payment = new HashMap<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +58,6 @@ public class MakePayment extends AppCompatActivity {
         setContentView(R.layout.activity_make_payment);
         final FirebaseFirestore db = FirebaseFirestore.getInstance();
         final FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        final CardInputWidget cardInputWidget = findViewById(R.id.cardInputWidget);
         final TextView amount = findViewById(R.id.paymentAmountlbl);
         final TextView payee = findViewById(R.id.payeeUsernamelbl);
         final EditText inputPayee = findViewById(R.id.payeeUsernametxt);
@@ -87,14 +80,10 @@ public class MakePayment extends AppCompatActivity {
         inputPayee.addTextChangedListener(new TextWatcher() {
               @Override
               public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
               }
-
               @Override
               public void onTextChanged(CharSequence s, int start, int before, int count) {
-
               }
-
               @Override
               public void afterTextChanged(Editable s) {
                     payee.setText(inputPayee.getText().toString());
@@ -104,22 +93,23 @@ public class MakePayment extends AppCompatActivity {
         inputAmount.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
             }
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-
             }
-
             @Override
             public void afterTextChanged(Editable s) {
-                amount.setText(decimalFormat.format(Double.valueOf(inputAmount.getText().toString())));
+                try {
+                    amount.setText(decimalFormat.format(Double.valueOf(inputAmount.getText().toString())));
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
             }
         });
         confirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                confirm.setClickable(false);
                 db.document("Users/"+currentUser.getEmail()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
@@ -144,10 +134,7 @@ public class MakePayment extends AppCompatActivity {
                                 textDigitalSignature = encoder.encodeToString(digitalSignature);
 
                                 from=task.getResult().get("Username").toString();
-                                Card card = cardInputWidget.getCard();
                                 amountStr = inputAmount.getText().toString();
-                                cardNumber = card.getNumber();
-                                cvc = card.getCvc();
 
                                 db.collection("Users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                     @Override
@@ -167,14 +154,10 @@ public class MakePayment extends AppCompatActivity {
                                                     byte[] bytePublicKey = decoder.decode(textPublicKey);
                                                     X509EncodedKeySpec spec = new X509EncodedKeySpec(bytePublicKey);
                                                     PublicKey publicKey = keyFactory.generatePublic(spec);
-                                                    encryptedAmount = encoder.encodeToString(PaymentHelper.encrypt(amountStr,publicKey));
-                                                    encryptedCardNumber = encoder.encodeToString(PaymentHelper.encrypt(cardNumber,publicKey));
-                                                    encryptedCvc = encoder.encodeToString(PaymentHelper.encrypt(cvc,publicKey));
+                                                    encryptedAmount = encoder.encodeToString(SecurityHelper.encrypt(amountStr,publicKey));
 
                                                     //create Payment object
                                                     payment.put("Amount", encryptedAmount);
-                                                    payment.put("Card Number", encryptedCardNumber);
-                                                    payment.put("Cvc", encryptedCvc);
                                                     payment.put("Signature", textDigitalSignature);
                                                     payment.put("Public Key", textPublicKey);
                                                     payment.put("From", from);
@@ -182,6 +165,7 @@ public class MakePayment extends AppCompatActivity {
                                                 }
                                             }
                                             if(!userFound){
+                                                confirm.setClickable(true);
                                                 inputPayee.requestFocus();
                                                 Toast.makeText(MakePayment.this, "User not found",Toast.LENGTH_SHORT).show();
                                             }else{
@@ -190,7 +174,7 @@ public class MakePayment extends AppCompatActivity {
                                                     Log.d("Input", inputAmount.getText().toString());
                                                     Log.d("Accessible Funds", String.valueOf(accessibleFunds));
                                                     System.out.println("Payment Empty - "+payment.isEmpty());
-                                                    db.document("Users/"+currentUser.getEmail()).update("Accessible Funds", accessibleFunds- Double.valueOf(inputAmount.getText().toString())).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    db.document("Users/"+currentUser.getEmail()).update("Accessible Funds", FieldValue.increment(-(Double.valueOf(inputAmount.getText().toString())))).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                         @Override
                                                         public void onComplete(@NonNull Task<Void> task) {
                                                             if (task.isSuccessful()){
@@ -205,6 +189,7 @@ public class MakePayment extends AppCompatActivity {
                                                                 }).addOnFailureListener(new OnFailureListener() {
                                                                     @Override
                                                                     public void onFailure(@NonNull Exception e) {
+                                                                        confirm.setClickable(true);
                                                                         Toast.makeText(MakePayment.this, "Payment Failed", Toast.LENGTH_SHORT).show();
                                                                         Log.w("Failed", "Error adding document", e);
                                                                     }
@@ -214,17 +199,20 @@ public class MakePayment extends AppCompatActivity {
                                                     });
 
                                                 }else{
+                                                    confirm.setClickable(true);
                                                     inputAmount.requestFocus();
                                                     Log.d("Payment Failed", "Insufficient Funds");
                                                     Toast.makeText(MakePayment.this, "Payment Failed, Insufficient Funds",Toast.LENGTH_SHORT).show();
                                                 }
                                             }
                                         }catch(Exception e){
+                                            confirm.setClickable(true);
                                             e.printStackTrace();
                                         }
                                     }
                                 });
                             }catch(Exception e){
+                                confirm.setClickable(true);
                                 e.printStackTrace();
                             }
                         }

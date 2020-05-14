@@ -32,4 +32,5 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:19.2.0'
     implementation 'com.google.firebase:firebase-firestore:21.4.1'
     implementation 'com.stripe:stripe-android:14.2.0'
+    implementation 'com.google.android.gms:play-services-wallet:18.0.0'
 }

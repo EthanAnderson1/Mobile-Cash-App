@@ -60,4 +60,5 @@
     <string name="accountHoldersName">Account Holders Name</string>
     <string name="reject">Reject</string>
     <string name="enterPasswordToUpdate">Enter Password To Update Details</string>
+    <string name="addMoney">Add Money To Balance</string>
 </resources>

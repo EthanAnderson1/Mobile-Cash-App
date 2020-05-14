@@ -20,23 +20,31 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
 
 import java.security.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Base64;
 import java.util.Random;
 
 import static android.widget.Toast.LENGTH_SHORT;
 
+@RequiresApi(api = Build.VERSION_CODES.O)
 public class SignUp extends AppCompatActivity {
     FirebaseAuth mAuth;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
+    PublicKey publicKey;
     String textPublicKey;
     String textPrivateKey;
+    Base64.Encoder encoder = Base64.getEncoder();
+    List<String> takenUsernames = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,6 +52,16 @@ public class SignUp extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
 
         Button signUp = findViewById(R.id.signUpbtn);
+        takenUsernames.add("a");
+        db.collection("Users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+           @Override
+           public void onComplete(@NonNull Task<QuerySnapshot> task) {
+               List<DocumentSnapshot> docs = task.getResult().getDocuments();
+               for(DocumentSnapshot doc:docs){
+                   takenUsernames.add(doc.get("Username").toString());
+               }
+           }
+        });
 
         TabLayout tabs = findViewById(R.id.tabs);
         tabs.selectTab(tabs.getTabAt(1));
@@ -68,7 +86,6 @@ public class SignUp extends AppCompatActivity {
             }
         });
 
-
         signUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -81,6 +98,7 @@ public class SignUp extends AppCompatActivity {
                 final EditText sortCode = findViewById(R.id.sortCodetxt);
                 EditText Cpassword = findViewById(R.id.confirmPasswordtxt);
                 EditText password = findViewById(R.id.passwordtxt);
+
                 if (email.getText().toString().isEmpty()) {
                     email.setError("Please enter a valid email address");
                     email.requestFocus();
@@ -88,6 +106,10 @@ public class SignUp extends AppCompatActivity {
                     password.setError("Please enter a valid password");
                     password.requestFocus();
                     Cpassword.requestFocus();
+
+                } else if(takenUsernames.contains(username.getText().toString())){
+                    username.setError("Username is already taken");
+                    email.requestFocus();
                 } else {
                     mAuth.createUserWithEmailAndPassword(email.getText().toString(), password.getText().toString()).addOnCompleteListener(SignUp.this, new OnCompleteListener<AuthResult>() {
                         @RequiresApi(api = Build.VERSION_CODES.O)
@@ -101,7 +123,7 @@ public class SignUp extends AppCompatActivity {
                                     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
                                     keyPairGenerator.initialize(1024);
                                     KeyPair keyPair = keyPairGenerator.generateKeyPair();
-                                    Key publicKey = keyPair.getPublic();
+                                    publicKey = keyPair.getPublic();
                                     Key privateKey = keyPair.getPrivate();
                                     Base64.Encoder encoder = Base64.getEncoder();
                                     textPublicKey =encoder.encodeToString(publicKey.getEncoded());
@@ -121,16 +143,14 @@ public class SignUp extends AppCompatActivity {
 
 
                                 Map<String, Object> user = new HashMap<>();
-                                user.put("First Name", firstName.getText().toString());
-                                user.put("Last Name", lastName.getText().toString());
+                                user.put("First Name", encoder.encodeToString(SecurityHelper.encrypt(firstName.getText().toString(), publicKey)));
+                                user.put("Last Name", encoder.encodeToString(SecurityHelper.encrypt(lastName.getText().toString(), publicKey)));
                                 user.put("Username", username.getText().toString());
-                                user.put("Email", email.getText().toString());
-                                user.put("Account Holders Name", cardHoldersName.getText().toString());
-                                user.put("Account Number", accountNumber.getText().toString());
-                                user.put("Sort Code", sortCode.getText().toString());
-
-                                Random rand = new Random();
-                                user.put("Accessible Funds",(rand.nextInt(9500)+500));
+                                user.put("Email", encoder.encodeToString(SecurityHelper.encrypt(email.getText().toString(), publicKey)));
+                                user.put("Account Holders Name", encoder.encodeToString(SecurityHelper.encrypt(cardHoldersName.getText().toString(), publicKey)));
+                                user.put("Account Number", encoder.encodeToString(SecurityHelper.encrypt(accountNumber.getText().toString(), publicKey)));
+                                user.put("Sort Code", encoder.encodeToString(SecurityHelper.encrypt(sortCode.getText().toString(), publicKey)));
+                                user.put("Accessible Funds",(0));
                                 user.put("Public Key", textPublicKey);
                                 user.put("Private Key", textPrivateKey);
 

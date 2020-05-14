@@ -1,41 +1,123 @@
 package com.example.cashappv2;
 
-import android.os.Build;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import androidx.annotation.RequiresApi;
-
-import java.security.*;
-import java.util.Base64;
-
-import javax.crypto.Cipher;
+import java.util.Arrays;
+import java.util.Optional;
 
 public class PaymentHelper {
+    private PaymentHelper(){}
 
-    public static byte[] encrypt(String data, PublicKey key) {
-        byte[] dataToEncrypt = data.getBytes();
-        byte[] encryptedData = null;
-        try {
-            Cipher cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            encryptedData = cipher.doFinal(dataToEncrypt);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return encryptedData;
+    //Declares the version of google pay that will be used
+    //this must be present in all other request objects
+    private static JSONObject getBaseRequest() throws JSONException {
+        return new JSONObject().put("apiVersion", 2).put("apiVersionMinor", 0);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static String decrypt(byte[] data, PrivateKey key) {
-        String decryptedData = null;
-        try {
-            Cipher cipher = Cipher.getInstance("RSA");
-            Base64.Decoder decoder = Base64.getDecoder();
-            cipher.init(Cipher.DECRYPT_MODE, key);
-            decryptedData = new String(cipher.doFinal(decoder.decode(data)));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return decryptedData;
+    //this choses how the payment will be processed
+    private static JSONObject getGatewayTokenizationSpecification() throws JSONException {
+        return new JSONObject(){{
+            put("type", "PAYMENT_GATEWAY");
+            put("parameters", new JSONObject(){{
+                put("gateway", "example");
+                put("gatewayMerchantId", "exampleGatewayMerchantId");
+            }
+            });
+        }};
     }
+
+    //defines what card networks can be used in the app
+    private static JSONArray getAllowedCardNetworks() {
+        return new JSONArray()
+                .put("AMEX")
+                .put("DISCOVER")
+                .put("INTERAC")
+                .put("JCB")
+                .put("MASTERCARD")
+                .put("VISA");
+    }
+
+    //app can take cards on file at google or from authenticated devices
+    private static JSONArray getAllowedCardAuthMethods() {
+        return new JSONArray()
+                .put("PAN_ONLY")
+                .put("CRYPTOGRAM_3DS");
+    }
+
+    //describe payment methods that will be used
+    //for this app it will be card
+    private static JSONObject getBaseCardPaymentMethod() throws JSONException {
+        JSONObject cardPaymentMethod = new JSONObject();
+        cardPaymentMethod.put("type", "CARD");
+
+        JSONObject parameters = new JSONObject();
+        parameters.put("allowedAuthMethods", getAllowedCardAuthMethods());
+        parameters.put("allowedCardNetworks", getAllowedCardNetworks());
+        parameters.put("billingAddressRequired", true);
+
+        JSONObject billingAddressParameters = new JSONObject();
+        billingAddressParameters.put("format", "FULL");
+
+        parameters.put("billingAddressParameters", billingAddressParameters);
+
+        cardPaymentMethod.put("parameters", parameters);
+
+        return cardPaymentMethod;
+    }
+
+    //further describes the method of payment
+    private static JSONObject getCardPaymentMethod() throws JSONException {
+        JSONObject cardPaymentMethod = getBaseCardPaymentMethod();
+        cardPaymentMethod.put("tokenizationSpecification", getGatewayTokenizationSpecification());
+
+        return cardPaymentMethod;
+    }
+
+    public static Optional<JSONObject> getIsReadyToPayRequest() {
+        try {
+            JSONObject isReadyToPayRequest = getBaseRequest();
+            isReadyToPayRequest.put(
+                    "allowedPaymentMethods", new JSONArray().put(getBaseCardPaymentMethod()));
+
+            return Optional.of(isReadyToPayRequest);
+        } catch (JSONException e) {
+            return Optional.empty();
+        }
+    }
+
+    private static JSONObject getTransactionInfo(String price) throws JSONException {
+        JSONObject transactionInfo = new JSONObject();
+        transactionInfo.put("totalPrice", price);
+        transactionInfo.put("totalPriceStatus", "FINAL");
+        transactionInfo.put("countryCode", "GB");
+        transactionInfo.put("currencyCode", "GBP");
+
+        return transactionInfo;
+    }
+
+    private static JSONObject getMerchantInfo() throws JSONException {
+        return new JSONObject().put("merchantName", "Example Merchant");
+    }
+
+    public static Optional<JSONObject> getPaymentDataRequest(String price) {
+        try {
+            JSONObject paymentDataRequest = getBaseRequest();
+            paymentDataRequest.put("allowedPaymentMethods", new JSONArray().put(getCardPaymentMethod()));
+            paymentDataRequest.put("transactionInfo", getTransactionInfo(price));
+            paymentDataRequest.put("merchantInfo", getMerchantInfo());
+
+          /* An optional shipping address requirement is a top-level property of the PaymentDataRequest
+          JSON object. */
+            paymentDataRequest.put("shippingAddressRequired", false);
+
+            JSONArray allowedCountryCodes = new JSONArray(Arrays.asList("US", "GB"));
+
+            return Optional.of(paymentDataRequest);
+        } catch (JSONException e) {
+            return Optional.empty();
+        }
+    }
+
 }

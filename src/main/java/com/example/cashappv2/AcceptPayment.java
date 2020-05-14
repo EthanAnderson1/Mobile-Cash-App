@@ -27,6 +27,7 @@ import com.google.firebase.auth.FirebaseUser;
 
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -41,12 +42,8 @@ import java.util.List;
 
 public class AcceptPayment extends AppCompatActivity {
     String encryptedAmount;
-    String encryptedCardNumber;
-    String encryptedCvc;
     String fromStr;
     String amountStr;
-    String cardNumber;
-    String cvc;
     PrivateKey privateKey;
     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
     private DocumentSnapshot currentUserDetails;
@@ -98,19 +95,30 @@ public class AcceptPayment extends AppCompatActivity {
         final TextView accountHoldersName = findViewById(R.id.accountHoldersNamelbl);
         final TextView accountNumber = findViewById(R.id.accountNumberlbl);
         final TextView sortCode = findViewById(R.id.sortCodelbl);
-        final LinearLayout  pendingPayments = findViewById(R.id.pendingPayments);
+        final LinearLayout pendingPayments = findViewById(R.id.pendingPayments);
 
         //get current users details
         db.document("Users/"+currentUser.getEmail()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
             if(task.isSuccessful()){
                 try{
                     currentUserDetails = task.getResult();
-                    DocumentSnapshot doc = task.getResult();
-                    String accountHoldersNamestr = "Account Holders Name - " + doc.getString("Account Holders Name");
-                    String accountNumberstr = "Account Number - " + doc.getString("Account Number");
-                    String sortCodestr = "Sort Code - " + doc.getString("Sort Code");
+                    try {
+                        //get the current users private key
+                        String textPrivateKey = currentUserDetails.get("Private Key").toString();
+                        Base64.Decoder decoder = Base64.getDecoder();
+                        byte[] bytePrivateKey = decoder.decode(textPrivateKey);
+                        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytePrivateKey);
+                        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                        privateKey = keyFactory.generatePrivate(spec);
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
+                    String accountHoldersNamestr = "Account Holders Name - " + SecurityHelper.decrypt(currentUserDetails.getString("Account Holders Name").getBytes(),privateKey);
+                    String accountNumberstr = "Account Number - " + SecurityHelper.decrypt(currentUserDetails.getString("Account Number").getBytes(),privateKey);
+                    String sortCodestr = "Sort Code - " + SecurityHelper.decrypt(currentUserDetails.getString("Sort Code").getBytes(), privateKey);
                     accountHoldersName.setText(accountHoldersNamestr);
                     accountNumber.setText(accountNumberstr);
                     sortCode.setText(sortCodestr);
@@ -129,25 +137,10 @@ public class AcceptPayment extends AppCompatActivity {
                                 for (final DocumentSnapshot doc : docs) {
                                     String payee = doc.get("To").toString();
                                     if (currentUserDetails.get("Username").toString().equals(payee)) {
-                                        try {
-                                            //get the current users private key
-                                            String textPrivateKey = currentUserDetails.get("Private Key").toString();
-                                            Base64.Decoder decoder = Base64.getDecoder();
-                                            byte[] bytePrivateKey = decoder.decode(textPrivateKey);
-                                            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytePrivateKey);
-                                            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-                                            privateKey = keyFactory.generatePrivate(spec);
-                                        }catch(Exception e){
-                                            e.printStackTrace();
-                                        }
                                         //get and decrypt the payment details
                                         fromStr = doc.get("From").toString();
                                         encryptedAmount = doc.get("Amount").toString();
-                                        encryptedCardNumber = doc.get("Card Number").toString();
-                                        encryptedCvc = doc.get("Cvc").toString();
-                                        amountStr = PaymentHelper.decrypt(encryptedAmount.getBytes(),privateKey);
-                                        cardNumber = PaymentHelper.decrypt(encryptedCardNumber.getBytes(),privateKey);
-                                        cvc = PaymentHelper.decrypt(encryptedCvc.getBytes(),privateKey);
+                                        amountStr = SecurityHelper.decrypt(encryptedAmount.getBytes(),privateKey);
                                         Log.d("success", "payment found");
 
                                         //create visual representation
@@ -200,7 +193,13 @@ public class AcceptPayment extends AppCompatActivity {
                                                                 signature.initVerify(publicKey);
                                                                 byte[] byteDigitalSignature = decoder.decode(digitalSignature);
                                                                 signature.update(from.getBytes());
-                                                                System.out.println("Signature " + (signature.verify(byteDigitalSignature) ? "OK" : "Not OK"));
+
+                                                                if(signature.verify(byteDigitalSignature)){
+                                                                    Toast.makeText(AcceptPayment.this, "Digital Signature Verified", Toast.LENGTH_SHORT).show();
+                                                                }else{
+                                                                    Toast.makeText(AcceptPayment.this, "Suspicious Payment : Digital Signature Failed Verification", Toast.LENGTH_SHORT).show();
+                                                                }
+
                                                             } catch (Exception e) {
                                                                 e.printStackTrace();
                                                             }
@@ -211,7 +210,7 @@ public class AcceptPayment extends AppCompatActivity {
                                                                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                                                     if (task.isSuccessful()) {
                                                                         DocumentSnapshot doc = task.getResult();
-                                                                        doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds") + amountDbl).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                        doc.getReference().update("Accessible Funds", FieldValue.increment(amountDbl)).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                                             @Override
                                                                             public void onComplete(@NonNull Task<Void> task) {
                                                                                 if (task.isSuccessful()) {
@@ -271,14 +270,14 @@ public class AcceptPayment extends AppCompatActivity {
                                                                             //refund payment amount
                                                                             final Double amountDbl = Double.valueOf(amountToPay.getText().toString().substring(8));
                                                                             if(doc.get("Username").toString().equals(fromStr)){
-                                                                                doc.getReference().update("Accessible Funds", doc.getDouble("Accessible Funds")+amountDbl).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                                doc.getReference().update("Accessible Funds", FieldValue.increment(amountDbl)).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                                                     @Override
                                                                                     public void onComplete(@NonNull Task<Void> task) {
-                                                                                    if (task.isSuccessful()) {
-                                                                                        Log.d("Update Success", "Balance Updated");
-                                                                                    } else {
-                                                                                        Log.d("Update Failed", "Error");
-                                                                                    }
+                                                                                        if (task.isSuccessful()) {
+                                                                                            Log.d("Update Success", "Balance Updated");
+                                                                                        } else {
+                                                                                            Log.d("Update Failed", "Error");
+                                                                                        }
                                                                                     }
                                                                                 });
                                                                             }
